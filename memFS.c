@@ -784,14 +784,38 @@ static int memFS_rename (const char* path, const char* newPath, unsigned int fla
 	struct Index* newIndex = get_Index(newPath, NULL);
 	int ret = 0;
 	
-	printf("path is %s, new path is %s\n", path, newPath);
+	printf("path is %s, new path is %s newIndex is %p\n", path, newPath, newIndex);
 
-	if(newPath == NULL) {
+	if(newIndex == NULL) {
+		printf("into this newPath == NULL\n");
+		struct DataNode* dataNode = NULL;
 		ret = make_new_node(newPath, oldIndex->m_flag, oldIndex->m_mode);
 		if(ret == -1) 
 			return -1;
-		
+		newIndex = get_Index(newPath, NULL);
+		if(!newIndex)
+			return -1;
+
+		dataNode = oldIndex->m_first;
+		oldIndex->m_first = newIndex->m_first;
+		oldIndex->m_last = newIndex->m_first;
+		oldIndex->m_last->m_next = NULL;
+		oldIndex->m_last->m_using = 0;
+
+		newIndex->m_first = dataNode;
+		newIndex->m_last = dataNode;
+		dataNode = dataNode->m_next;
+		while(dataNode)
+		{
+			newIndex->m_last = dataNode;
+			dataNode = dataNode->m_next;
+		}
+
+		newIndex->m_fsize = oldIndex->m_fsize;
+		delete(path);
+		return 0;
 	} else {
+		printf("into this newPath != NULL\n");
 		if(flags & (1 << 1)) { // RENAME_EXCHANGE
 			struct DataNode* first = oldIndex->m_first;
 			struct DataNode* last = oldIndex->m_last;
